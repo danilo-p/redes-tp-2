@@ -3,6 +3,12 @@
 import socket
 import sys
 import time
+import re
+
+
+def is_file_name_valid(file_name):
+    # [\x00-\x2D\x2F-\x7F] matches any ascii char except for "." (2E)
+    return re.search(r"^([\x00-\x2D\x2F-\x7F]){0,11}\.[\x00-\x2D\x2F-\x7F]{3}$", file_name)
 
 
 def main():
@@ -13,6 +19,10 @@ def main():
     server_address = sys.argv[1]
     server_port = int(sys.argv[2])
     file_name = sys.argv[3]
+
+    if not is_file_name_valid(file_name):
+        print("invalid file name")
+        return
 
     sock = None
     if ':' in server_address:
