@@ -3,6 +3,7 @@
 import socket
 import sys
 import re
+from messages import HelloMessage
 
 
 def is_file_name_valid(file_name):
@@ -38,9 +39,8 @@ def main():
 
     udp_port = 0
     try:
-        f = open(file_name, "r")
+        sock.sendall(HelloMessage.serialize())
         sock.sendall(content.encode())
-        f.close()
 
         full_message = ""
         while True:

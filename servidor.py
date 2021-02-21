@@ -4,6 +4,7 @@ import socket
 import sys
 import threading
 import time
+from messages import HelloMessage
 
 
 class ClientDataThread(threading.Thread):
@@ -49,6 +50,8 @@ class ClientControlThread(threading.Thread):
     def run(self):
         try:
             print('connection from', self.client_address)
+
+            data = self.connection.recv(HelloMessage.size())
 
             full_message = ""
             while True:
