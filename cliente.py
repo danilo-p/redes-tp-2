@@ -23,17 +23,23 @@ def main():
         print("invalid file name")
         return
 
-    sock = None
+    family = None
     if ':' in server_address:
-        sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        family = socket.AF_INET6
     else:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        family = socket.AF_INET
+    sock = socket.socket(family, socket.SOCK_STREAM)
 
     sock.connect((server_address, server_port))
 
+    f = open(file_name, "r")
+    content = f.readline() + '\n'
+    f.close()
+
+    udp_port = 0
     try:
         f = open(file_name, "r")
-        sock.sendall((f.readline() + '\n').encode())
+        sock.sendall(content.encode())
         f.close()
 
         full_message = ""
@@ -51,8 +57,17 @@ def main():
                 break
 
         print('received "%s"' % full_message)
+
+        udp_port = int(full_message[0:-1])
     finally:
         print('closing socket')
+        sock.close()
+
+    sock = socket.socket(family, socket.SOCK_DGRAM)
+    try:
+        sock.sendto(content.encode(), (server_address, udp_port))
+    finally:
+        print('closing socket udp')
         sock.close()
 
 
