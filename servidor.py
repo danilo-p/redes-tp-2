@@ -52,6 +52,7 @@ class ClientControlThread(threading.Thread):
             print('connection from', self.client_address)
 
             data = self.connection.recv(HelloMessage.size())
+            HelloMessage.deserialize(data)
 
             full_message = ""
             while True:

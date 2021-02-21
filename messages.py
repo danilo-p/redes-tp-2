@@ -16,11 +16,13 @@ def get_message_size(struct_format):
 
 
 class HelloMessage:
-    FORMAT = 'I'
+    FORMAT = 'h'
 
     @staticmethod
     def deserialize(data):
-        return deserialize_message(HelloMessage.FORMAT, data)
+        values = deserialize_message(HelloMessage.FORMAT, data)
+        if values[0] != 1:
+            raise Exception("Wrong type for HELLO message")
 
     @staticmethod
     def size():
