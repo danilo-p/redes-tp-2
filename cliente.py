@@ -3,7 +3,7 @@
 import socket
 import sys
 import re
-from messages import HelloMessage
+from messages import HelloMessage, ConnectionMessage
 
 
 def is_file_name_valid(file_name):
@@ -40,6 +40,11 @@ def main():
     udp_port = 0
     try:
         sock.sendall(HelloMessage.serialize())
+
+        data = sock.recv(ConnectionMessage.size())
+        connection_message = ConnectionMessage.deserialize(data)
+        print("connection_message", connection_message.udp_port)
+
         sock.sendall(content.encode())
 
         full_message = ""

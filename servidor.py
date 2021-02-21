@@ -4,7 +4,7 @@ import socket
 import sys
 import threading
 import time
-from messages import HelloMessage
+from messages import HelloMessage, ConnectionMessage
 
 
 class ClientDataThread(threading.Thread):
@@ -53,6 +53,9 @@ class ClientControlThread(threading.Thread):
 
             data = self.connection.recv(HelloMessage.size())
             HelloMessage.deserialize(data)
+
+            self.connection.sendall(
+                ConnectionMessage(self.udp_port).serialize())
 
             full_message = ""
             while True:
