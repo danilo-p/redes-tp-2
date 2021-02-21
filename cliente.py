@@ -2,7 +2,6 @@
 
 import socket
 import sys
-import time
 import re
 
 
@@ -32,10 +31,10 @@ def main():
 
     sock.connect((server_address, server_port))
 
-    time.sleep(10)
-
     try:
-        sock.sendall((file_name + '\n').encode())
+        f = open(file_name, "r")
+        sock.sendall((f.readline() + '\n').encode())
+        f.close()
 
         full_message = ""
         while True:
