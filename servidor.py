@@ -2,6 +2,40 @@
 
 import socket
 import sys
+import threading
+
+
+class ClientThread(threading.Thread):
+
+    def __init__(self, connection, client_address):
+        threading.Thread.__init__(self)
+        self.connection = connection
+        self.client_address = client_address
+
+    def run(self):
+        try:
+            print('connection from', self.client_address)
+
+            full_message = ""
+            while True:
+                data = self.connection.recv(16)
+
+                if not data:
+                    print('no more data from', self.client_address)
+                    break
+
+                message = data.decode()
+                full_message += message
+
+                if '\n' in message:
+                    break
+
+            print('received "%s"' % full_message)
+
+            self.connection.sendall(full_message.encode())
+
+        finally:
+            self.connection.close()
 
 
 def main():
@@ -20,30 +54,7 @@ def main():
     while True:
         print('waiting for a connection')
         connection, client_address = sock.accept()
-
-        try:
-            print('connection from', client_address)
-
-            full_message = ""
-            while True:
-                data = connection.recv(16)
-
-                if not data:
-                    print('no more data from', client_address)
-                    break
-
-                message = data.decode()
-                full_message += message
-
-                if '\n' in message:
-                    break
-
-            print('received "%s"' % full_message)
-
-            connection.sendall(full_message.encode())
-
-        finally:
-            connection.close()
+        ClientThread(connection, client_address).start()
 
 
 if __name__ == "__main__":

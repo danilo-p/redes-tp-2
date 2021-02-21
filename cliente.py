@@ -2,6 +2,7 @@
 
 import socket
 import sys
+import time
 
 
 def main():
@@ -11,7 +12,7 @@ def main():
 
     server_address = sys.argv[1]
     server_port = int(sys.argv[2])
-    # file_name = sys.argv[3]
+    file_name = sys.argv[3]
 
     sock = None
     if ':' in server_address:
@@ -21,8 +22,10 @@ def main():
 
     sock.connect((server_address, server_port))
 
+    time.sleep(10)
+
     try:
-        sock.sendall('This is the message.\n'.encode())
+        sock.sendall((file_name + '\n').encode())
 
         full_message = ""
         while True:
