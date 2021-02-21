@@ -3,6 +3,7 @@
 import socket
 import sys
 import threading
+import time
 
 
 class ClientThread(threading.Thread):
@@ -11,6 +12,7 @@ class ClientThread(threading.Thread):
         threading.Thread.__init__(self)
         self.connection = connection
         self.client_address = client_address
+        self.daemon = True
 
     def run(self):
         try:
@@ -38,6 +40,24 @@ class ClientThread(threading.Thread):
             self.connection.close()
 
 
+class ServerThread(threading.Thread):
+
+    def __init__(self, family, port):
+        threading.Thread.__init__(self)
+        self.family = family
+        self.port = port
+        self.daemon = True
+
+    def run(self):
+        sock = socket.socket(self.family, socket.SOCK_STREAM)
+        sock.bind(('localhost', self.port))
+        sock.listen(1)
+        while True:
+            print('waiting for a connection')
+            connection, client_address = sock.accept()
+            ClientThread(connection, client_address).start()
+
+
 def main():
     if len(sys.argv) != 2:
         print("should receive just one parameter with the server port")
@@ -45,18 +65,14 @@ def main():
 
     port = int(sys.argv[1])
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    ServerThread(socket.AF_INET, port).start()
 
-    sock.bind(('localhost', port))
+    ServerThread(socket.AF_INET6, port).start()
 
-    sock.listen(1)
-
+    import time
     while True:
-        print('waiting for a connection')
-        connection, client_address = sock.accept()
-        ClientThread(connection, client_address).start()
+        time.sleep(1)
 
 
 if __name__ == "__main__":
-    # execute only if run as a script
     main()
