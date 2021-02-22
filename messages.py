@@ -83,16 +83,6 @@ class PayloadSizeHelper:
         return int.from_bytes(data, byteorder=BYTEORDER)
 
 
-class PayloadHelper:
-    @staticmethod
-    def serialize(payload):
-        return payload.encode()
-
-    @staticmethod
-    def deserialize(data):
-        return data.decode()
-
-
 class HelloMessage:
     MESSAGE_TYPE = 1
 
@@ -233,8 +223,7 @@ class FileMessage:
         payload_size_bytes = data[n_seq_offset:payload_size_offset]
         payload_size = PayloadSizeHelper.deserialize(payload_size_bytes)
 
-        payload_bytes = data[payload_size_offset:]
-        payload = PayloadHelper.deserialize(payload_bytes)
+        payload = data[payload_size_offset:]
 
         if payload_size != len(payload):
             raise Exception("wrong payload size")
@@ -252,7 +241,7 @@ class FileMessage:
         return MessageTypeHelper.serialize(ConnectionMessage.MESSAGE_TYPE) \
             + NSeqHelper.serialize(self.n_seq) \
             + PayloadSizeHelper.serialize(self.payload_size()) \
-            + PayloadHelper.serialize(self.payload)
+            + self.payload
 
 
 class AckMessage:

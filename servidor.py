@@ -39,7 +39,7 @@ class ClientThread(threading.Thread):
             data = udp_sock.recv(FileMessage.size(info_file_message.file_size))
             file_message = FileMessage.deserialize(data)
 
-            f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "w")
+            f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "wb")
             f.write(file_message.payload)
             f.close()
 

@@ -25,7 +25,7 @@ def main():
         print("invalid file name")
         return
 
-    f = open(file_name, "r")
+    f = open(file_name, "rb")
     file_content = f.read()
     f.close()
 
