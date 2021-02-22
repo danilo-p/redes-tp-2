@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import socket
 import sys
@@ -57,23 +57,23 @@ class ClientControlThread(threading.Thread):
             self.connection.sendall(
                 ConnectionMessage(self.udp_port).serialize())
 
-            full_message = ""
-            while True:
-                data = self.connection.recv(16)
+            # full_message = ""
+            # while True:
+            #     data = self.connection.recv(16)
 
-                if not data:
-                    print('no more data from', self.client_address)
-                    break
+            #     if not data:
+            #         print('no more data from', self.client_address)
+            #         break
 
-                message = data.decode()
-                full_message += message
+            #     message = data.decode()
+            #     full_message += message
 
-                if '\n' in message:
-                    break
+            #     if '\n' in message:
+            #         break
 
-            print('received "%s"' % full_message)
+            # print('received "%s"' % full_message)
 
-            self.connection.sendall((str(self.udp_port) + '\n').encode())
+            # self.connection.sendall((str(self.udp_port) + '\n').encode())
 
         finally:
             self.connection.close()
@@ -150,4 +150,5 @@ def main():
 
 
 if __name__ == "__main__":
+    print(sys.version)
     main()

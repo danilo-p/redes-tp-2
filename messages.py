@@ -1,56 +1,71 @@
-import struct
+BYTEORDER = "big"
 
 
-def serialize_message(struct_format, values):
-    packer = struct.Struct(struct_format)
-    return packer.pack(*values)
+class MessageTypeHelper:
+    SIZE = 2
+
+    @staticmethod
+    def serialize(message_type):
+        return message_type.to_bytes(MessageTypeHelper.SIZE, byteorder=BYTEORDER)
+
+    @staticmethod
+    def deserialize(data):
+        return int.from_bytes(data, byteorder=BYTEORDER)
 
 
-def deserialize_message(struct_format, data):
-    unpacker = struct.Struct(struct_format)
-    return unpacker.unpack(data)
+class UdpPortHelper:
+    SIZE = 4
 
+    @staticmethod
+    def serialize(udp_port):
+        return udp_port.to_bytes(UdpPortHelper.SIZE, byteorder=BYTEORDER)
 
-def get_format_size(struct_format):
-    return struct.Struct(struct_format).size
+    @staticmethod
+    def deserialize(data):
+        return int.from_bytes(data, byteorder=BYTEORDER)
 
 
 class HelloMessage:
     MESSAGE_TYPE = 1
-    FORMAT = 'H'
 
     @staticmethod
     def deserialize(data):
-        values = deserialize_message(HelloMessage.FORMAT, data)
-        if values[0] != HelloMessage.MESSAGE_TYPE:
+        message_type = MessageTypeHelper.deserialize(data)
+        if message_type != HelloMessage.MESSAGE_TYPE:
             raise Exception("Wrong type for HELLO message")
 
     @staticmethod
     def size():
-        return get_format_size(HelloMessage.FORMAT)
+        return MessageTypeHelper.SIZE
 
     @staticmethod
     def serialize():
-        return serialize_message(HelloMessage.FORMAT, (HelloMessage.MESSAGE_TYPE,))
+        return MessageTypeHelper.serialize(HelloMessage.MESSAGE_TYPE)
 
 
 class ConnectionMessage:
     MESSAGE_TYPE = 2
-    FORMAT = 'HH'
 
     def __init__(self, udp_port):
         self.udp_port = udp_port
 
     @staticmethod
     def deserialize(data):
-        values = deserialize_message(ConnectionMessage.FORMAT, data)
-        if values[0] != ConnectionMessage.MESSAGE_TYPE:
+        message_type_bytes = data[0:MessageTypeHelper.SIZE]
+        message_type = MessageTypeHelper.deserialize(message_type_bytes)
+
+        udp_port_bytes = data[MessageTypeHelper.SIZE:(
+            MessageTypeHelper.SIZE + UdpPortHelper.SIZE)]
+        udp_port = UdpPortHelper.deserialize(udp_port_bytes)
+
+        if message_type != ConnectionMessage.MESSAGE_TYPE:
             raise Exception("Wrong type for CONNECTION message")
-        return ConnectionMessage(values[1])
+
+        return ConnectionMessage(udp_port)
 
     @staticmethod
     def size():
-        return get_format_size(ConnectionMessage.FORMAT)
+        return MessageTypeHelper.SIZE + UdpPortHelper.SIZE
 
     def serialize(self):
-        return serialize_message(ConnectionMessage.FORMAT, (ConnectionMessage.MESSAGE_TYPE, self.udp_port))
+        return MessageTypeHelper.serialize(ConnectionMessage.MESSAGE_TYPE) + UdpPortHelper.serialize(self.udp_port)
