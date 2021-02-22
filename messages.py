@@ -126,7 +126,7 @@ class InfoFileMessage:
         file_size = FileSizeHelper.deserialize(file_size_bytes)
 
         if message_type != ConnectionMessage.MESSAGE_TYPE:
-            raise Exception("Wrong type for CONNECTION message")
+            raise Exception("Wrong type for INFO FILE message")
 
         return InfoFileMessage(file_name, file_size)
 
@@ -138,3 +138,21 @@ class InfoFileMessage:
         return MessageTypeHelper.serialize(ConnectionMessage.MESSAGE_TYPE) \
             + FileNameHelper.serialize(self.file_name) \
             + FileSizeHelper.serialize(self.file_size)
+
+
+class OkMessage:
+    MESSAGE_TYPE = 4
+
+    @staticmethod
+    def deserialize(data):
+        message_type = MessageTypeHelper.deserialize(data)
+        if message_type != OkMessage.MESSAGE_TYPE:
+            raise Exception("Wrong type for OK message")
+
+    @staticmethod
+    def size():
+        return MessageTypeHelper.SIZE
+
+    @staticmethod
+    def serialize():
+        return MessageTypeHelper.serialize(OkMessage.MESSAGE_TYPE)

@@ -4,7 +4,7 @@ import socket
 import sys
 import re
 import os
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage
 
 
 def is_file_name_valid(file_name):
@@ -48,6 +48,9 @@ def main():
 
         file_size = os.path.getsize(file_name)
         sock.sendall(InfoFileMessage(file_name, file_size).serialize())
+
+        data = sock.recv(OkMessage.size())
+        OkMessage.deserialize(data)
 
         # sock.sendall(content.encode())
 
