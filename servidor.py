@@ -4,7 +4,7 @@ import socket
 import sys
 import threading
 import time
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage, AckMessage
 
 OUTPUT_DIR = 'output'
 
@@ -42,6 +42,8 @@ class ClientThread(threading.Thread):
             f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "w")
             f.write(file_message.payload)
             f.close()
+
+            self.connection.sendall(AckMessage(file_message.n_seq).serialize())
 
             self.connection.sendall(FimMessage.serialize())
         finally:

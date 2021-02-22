@@ -253,3 +253,31 @@ class FileMessage:
             + NSeqHelper.serialize(self.n_seq) \
             + PayloadSizeHelper.serialize(self.payload_size()) \
             + PayloadHelper.serialize(self.payload)
+
+
+class AckMessage:
+    MESSAGE_TYPE = 7
+
+    def __init__(self, n_seq):
+        self.n_seq = n_seq
+
+    @staticmethod
+    def deserialize(data):
+        message_type_bytes = data[0:MessageTypeHelper.SIZE]
+        message_type = MessageTypeHelper.deserialize(message_type_bytes)
+
+        if message_type != AckMessage.MESSAGE_TYPE:
+            raise Exception("wrong type for ACK message")
+
+        n_seq_bytes = data[MessageTypeHelper.SIZE:(
+            MessageTypeHelper.SIZE + NSeqHelper.SIZE)]
+        n_seq = NSeqHelper.deserialize(n_seq_bytes)
+
+        return AckMessage(n_seq)
+
+    @staticmethod
+    def size():
+        return MessageTypeHelper.SIZE + NSeqHelper.SIZE
+
+    def serialize(self):
+        return MessageTypeHelper.serialize(AckMessage.MESSAGE_TYPE) + NSeqHelper.serialize(self.n_seq)

@@ -4,7 +4,7 @@ import socket
 import sys
 import re
 import os
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage, AckMessage
 
 
 def is_file_name_valid(file_name):
@@ -56,6 +56,9 @@ def main():
         udp_sock = socket.socket(family, socket.SOCK_DGRAM)
         udp_sock.sendto(FileMessage(1, file_content).serialize(),
                         (server_address, udp_port))
+
+        data = sock.recv(AckMessage.size())
+        AckMessage.deserialize(data)
 
         data = sock.recv(FimMessage.size())
         FimMessage.deserialize(data)
