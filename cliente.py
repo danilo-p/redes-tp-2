@@ -1,8 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import socket
 import sys
 import re
+import os
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage
 
 
 def is_file_name_valid(file_name):
@@ -32,45 +34,58 @@ def main():
 
     sock.connect((server_address, server_port))
 
-    f = open(file_name, "r")
-    content = f.readline() + '\n'
-    f.close()
+    # f = open(file_name, "r")
+    # content = f.readline() + '\n'
+    # f.close()
 
-    udp_port = 0
+    # udp_port = 0
     try:
-        f = open(file_name, "r")
-        sock.sendall(content.encode())
-        f.close()
+        sock.sendall(HelloMessage.serialize())
 
-        full_message = ""
-        while True:
-            data = sock.recv(16)
+        data = sock.recv(ConnectionMessage.size())
+        connection_message = ConnectionMessage.deserialize(data)
+        print("connection_message", connection_message.udp_port)
 
-            if not data:
-                print('no more data from server')
-                break
+        file_size = os.path.getsize(file_name)
+        sock.sendall(InfoFileMessage(file_name, file_size).serialize())
 
-            message = data.decode()
-            full_message += message
+        data = sock.recv(OkMessage.size())
+        OkMessage.deserialize(data)
 
-            if '\n' in message:
-                break
+        data = sock.recv(FimMessage.size())
+        FimMessage.deserialize(data)
 
-        print('received "%s"' % full_message)
+        # sock.sendall(content.encode())
 
-        udp_port = int(full_message[0:-1])
+        # full_message = ""
+        # while True:
+        #     data = sock.recv(16)
+
+        #     if not data:
+        #         print('no more data from server')
+        #         break
+
+        #     message = data.decode()
+        #     full_message += message
+
+        #     if '\n' in message:
+        #         break
+
+        # print('received "%s"' % full_message)
+
+        # udp_port = int(full_message[0:-1])
     finally:
         print('closing socket')
         sock.close()
 
-    sock = socket.socket(family, socket.SOCK_DGRAM)
-    try:
-        sock.sendto(content.encode(), (server_address, udp_port))
-    finally:
-        print('closing socket udp')
-        sock.close()
+    # sock = socket.socket(family, socket.SOCK_DGRAM)
+    # try:
+    #     sock.sendto(content.encode(), (server_address, udp_port))
+    # finally:
+    #     print('closing socket udp')
+    #     sock.close()
 
 
 if __name__ == "__main__":
-    # execute only if run as a script
+    print(sys.version)
     main()

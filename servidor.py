@@ -1,9 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import socket
 import sys
 import threading
 import time
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage
 
 
 class ClientDataThread(threading.Thread):
@@ -50,23 +51,41 @@ class ClientControlThread(threading.Thread):
         try:
             print('connection from', self.client_address)
 
-            full_message = ""
-            while True:
-                data = self.connection.recv(16)
+            data = self.connection.recv(HelloMessage.size())
+            HelloMessage.deserialize(data)
 
-                if not data:
-                    print('no more data from', self.client_address)
-                    break
+            self.connection.sendall(
+                ConnectionMessage(self.udp_port).serialize())
 
-                message = data.decode()
-                full_message += message
+            data = self.connection.recv(InfoFileMessage.size())
+            info_file_message = InfoFileMessage.deserialize(data)
 
-                if '\n' in message:
-                    break
+            print(info_file_message.file_name)
+            print(info_file_message.file_size)
 
-            print('received "%s"' % full_message)
+            # TODO: alocate structures for the sliding window
 
-            self.connection.sendall((str(self.udp_port) + '\n').encode())
+            self.connection.sendall(OkMessage.serialize())
+
+            self.connection.sendall(FimMessage.serialize())
+
+            # full_message = ""
+            # while True:
+            #     data = self.connection.recv(16)
+
+            #     if not data:
+            #         print('no more data from', self.client_address)
+            #         break
+
+            #     message = data.decode()
+            #     full_message += message
+
+            #     if '\n' in message:
+            #         break
+
+            # print('received "%s"' % full_message)
+
+            # self.connection.sendall((str(self.udp_port) + '\n').encode())
 
         finally:
             self.connection.close()
@@ -143,4 +162,5 @@ def main():
 
 
 if __name__ == "__main__":
+    print(sys.version)
     main()
