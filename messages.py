@@ -203,12 +203,13 @@ class FimMessage:
 class FileMessage:
     MESSAGE_TYPE = 6
 
-    def __init__(self, n_seq, payload):
+    def __init__(self, n_seq, payload_size, payload):
         self.n_seq = n_seq
+        self.payload_size = payload_size
         self.payload = payload
 
     @staticmethod
-    def deserialize(data):
+    def deserialize(data, msg_peek=False):
         message_type_bytes = data[0:MessageTypeHelper.SIZE]
         message_type = MessageTypeHelper.deserialize(message_type_bytes)
 
@@ -223,24 +224,23 @@ class FileMessage:
         payload_size_bytes = data[n_seq_offset:payload_size_offset]
         payload_size = PayloadSizeHelper.deserialize(payload_size_bytes)
 
-        payload = data[payload_size_offset:]
+        payload = None
+        if not msg_peek:
+            payload = data[payload_size_offset:]
 
-        if payload_size != len(payload):
-            raise Exception("wrong payload size")
+            if payload_size != len(payload):
+                raise Exception("wrong payload size")
 
-        return FileMessage(n_seq, payload)
+        return FileMessage(n_seq, payload_size, payload)
 
     @staticmethod
-    def size(payload_size):
+    def size(payload_size=0):
         return MessageTypeHelper.SIZE + NSeqHelper.SIZE + PayloadSizeHelper.SIZE + payload_size
-
-    def payload_size(self):
-        return len(self.payload)
 
     def serialize(self):
         return MessageTypeHelper.serialize(ConnectionMessage.MESSAGE_TYPE) \
             + NSeqHelper.serialize(self.n_seq) \
-            + PayloadSizeHelper.serialize(self.payload_size()) \
+            + PayloadSizeHelper.serialize(self.payload_size) \
             + self.payload
 
 

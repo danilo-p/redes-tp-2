@@ -54,7 +54,7 @@ def main():
         OkMessage.deserialize(data)
 
         udp_sock = socket.socket(family, socket.SOCK_DGRAM)
-        udp_sock.sendto(FileMessage(1, file_content).serialize(),
+        udp_sock.sendto(FileMessage(1, len(file_content), file_content).serialize(),
                         (server_address, udp_port))
 
         data = sock.recv(AckMessage.size())

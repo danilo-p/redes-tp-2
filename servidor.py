@@ -36,7 +36,9 @@ class ClientThread(threading.Thread):
 
             self.connection.sendall(OkMessage.serialize())
 
-            data = udp_sock.recv(FileMessage.size(info_file_message.file_size))
+            data = udp_sock.recv(FileMessage.size(), socket.MSG_PEEK)
+            file_message = FileMessage.deserialize(data, msg_peek=True)
+            data = udp_sock.recv(FileMessage.size(file_message.payload_size))
             file_message = FileMessage.deserialize(data)
 
             f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "wb")
