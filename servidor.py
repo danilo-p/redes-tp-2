@@ -4,7 +4,8 @@ import socket
 import sys
 import threading
 import time
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage, AckMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, \
+    OkMessage, FimMessage, FileMessage, AckMessage
 
 OUTPUT_DIR = 'output'
 
@@ -36,16 +37,31 @@ class ClientThread(threading.Thread):
 
             self.connection.sendall(OkMessage.serialize())
 
-            data = udp_sock.recv(FileMessage.size(), socket.MSG_PEEK)
-            file_message = FileMessage.deserialize(data, msg_peek=True)
-            data = udp_sock.recv(FileMessage.size(file_message.payload_size))
-            file_message = FileMessage.deserialize(data)
+            file_content = b''
+
+            last_n_seq_recvd = None
+            while len(file_content) < info_file_message.file_size:
+                data = udp_sock.recv(FileMessage.size(), socket.MSG_PEEK)
+                file_message = FileMessage.deserialize(data, msg_peek=True)
+                data = udp_sock.recv(
+                    FileMessage.size(file_message.payload_size))
+                file_message = FileMessage.deserialize(data)
+
+                if file_message.n_seq > 0 and last_n_seq_recvd != file_message.n_seq - 1:
+                    print(f'discarding {file_message.n_seq}')
+                    continue
+
+                print(f'accepting {file_message.n_seq}')
+
+                file_content += file_message.payload
+                last_n_seq_recvd = file_message.n_seq
+
+                self.connection.sendall(AckMessage(
+                    file_message.n_seq).serialize())
 
             f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "wb")
-            f.write(file_message.payload)
+            f.write(file_content)
             f.close()
-
-            self.connection.sendall(AckMessage(file_message.n_seq).serialize())
 
             self.connection.sendall(FimMessage.serialize())
         finally:

@@ -4,7 +4,11 @@ import socket
 import sys
 import re
 import os
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage, AckMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, \
+    OkMessage, FimMessage, FileMessage, AckMessage
+
+CHUNK_SIZE_BYTES = 1000
+TCP_SOCKET_TIMEOUT = 5
 
 
 def is_file_name_valid(file_name):
@@ -40,6 +44,8 @@ def main():
 
     sock.connect((server_address, server_port))
 
+    sock.settimeout(TCP_SOCKET_TIMEOUT)
+
     udp_sock = None
     try:
         sock.sendall(HelloMessage.serialize())
@@ -54,11 +60,31 @@ def main():
         OkMessage.deserialize(data)
 
         udp_sock = socket.socket(family, socket.SOCK_DGRAM)
-        udp_sock.sendto(FileMessage(1, len(file_content), file_content).serialize(),
-                        (server_address, udp_port))
 
-        data = sock.recv(AckMessage.size())
-        AckMessage.deserialize(data)
+        next_chunk_index = 0
+        chunk_count = file_size / CHUNK_SIZE_BYTES
+        while next_chunk_index < file_size:
+            try:
+                n_seq = int(next_chunk_index / CHUNK_SIZE_BYTES)
+                print(f'sending chunk {n_seq} of {chunk_count}')
+
+                chunk_end = min(next_chunk_index + CHUNK_SIZE_BYTES, file_size)
+                chunk_size = chunk_end - next_chunk_index
+                udp_sock.sendto(FileMessage(n_seq, chunk_size, file_content[next_chunk_index:chunk_end]).serialize(),
+                                (server_address, udp_port))
+
+                data = sock.recv(AckMessage.size())
+                ack_message = AckMessage.deserialize(data)
+
+                if ack_message.n_seq != n_seq:
+                    print("received bad ack message")
+                    continue
+
+                next_chunk_index = chunk_end
+            except Exception as e:
+                print("unknown error")
+                print(e)
+                pass
 
         data = sock.recv(FimMessage.size())
         FimMessage.deserialize(data)
