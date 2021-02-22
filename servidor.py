@@ -39,6 +39,7 @@ class ClientThread(threading.Thread):
 
             file_content = b''
 
+            print('starting transfer')
             last_n_seq_recvd = None
             while len(file_content) < info_file_message.file_size:
                 data = udp_sock.recv(FileMessage.size(), socket.MSG_PEEK)
@@ -64,6 +65,8 @@ class ClientThread(threading.Thread):
             f.close()
 
             self.connection.sendall(FimMessage.serialize())
+
+            print('success')
         finally:
             self.connection.close()
             udp_sock.close()
