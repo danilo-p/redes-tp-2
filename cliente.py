@@ -3,7 +3,8 @@
 import socket
 import sys
 import re
-from messages import HelloMessage, ConnectionMessage
+import os
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage
 
 
 def is_file_name_valid(file_name):
@@ -44,6 +45,9 @@ def main():
         data = sock.recv(ConnectionMessage.size())
         connection_message = ConnectionMessage.deserialize(data)
         print("connection_message", connection_message.udp_port)
+
+        file_size = os.path.getsize(file_name)
+        sock.sendall(InfoFileMessage(file_name, file_size).serialize())
 
         # sock.sendall(content.encode())
 
