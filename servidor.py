@@ -4,7 +4,7 @@ import socket
 import sys
 import threading
 import time
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage
 
 OUTPUT_DIR = 'output'
 
@@ -36,11 +36,11 @@ class ClientThread(threading.Thread):
 
             self.connection.sendall(OkMessage.serialize())
 
-            data = udp_sock.recv(info_file_message.file_size)
-            file_content = data.decode()
+            data = udp_sock.recv(FileMessage.size(info_file_message.file_size))
+            file_message = FileMessage.deserialize(data)
 
             f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "w")
-            f.write(file_content)
+            f.write(file_message.payload)
             f.close()
 
             self.connection.sendall(FimMessage.serialize())

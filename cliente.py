@@ -4,7 +4,7 @@ import socket
 import sys
 import re
 import os
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage, FileMessage
 
 
 def is_file_name_valid(file_name):
@@ -54,12 +54,14 @@ def main():
         OkMessage.deserialize(data)
 
         udp_sock = socket.socket(family, socket.SOCK_DGRAM)
-        udp_sock.sendto(file_content.encode(), (server_address, udp_port))
+        udp_sock.sendto(FileMessage(1, file_content).serialize(),
+                        (server_address, udp_port))
 
         data = sock.recv(FimMessage.size())
         FimMessage.deserialize(data)
+
+        print('success')
     finally:
-        print('closing sockets')
         sock.close()
         if udp_sock:
             udp_sock.close()
