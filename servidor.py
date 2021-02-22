@@ -6,89 +6,7 @@ import threading
 import time
 from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage
 
-
-class ClientDataThread(threading.Thread):
-
-    def __init__(self, family, udp_port):
-        threading.Thread.__init__(self)
-        self.family = family
-        self.udp_port = udp_port
-        self.daemon = True
-
-    def run(self):
-        sock = socket.socket(self.family, socket.SOCK_DGRAM)
-        sock.bind(('localhost', self.udp_port))
-        try:
-            full_message = ""
-            while True:
-                data = sock.recv(16)
-
-                if not data:
-                    print('no more data in ', self.udp_port)
-                    break
-
-                message = data.decode()
-                full_message += message
-
-                if '\n' in message:
-                    break
-
-            print('udp received "%s"' % full_message)
-        finally:
-            sock.close()
-
-
-class ClientControlThread(threading.Thread):
-
-    def __init__(self, connection, client_address, udp_port):
-        threading.Thread.__init__(self)
-        self.connection = connection
-        self.client_address = client_address
-        self.udp_port = udp_port
-        self.daemon = True
-
-    def run(self):
-        try:
-            print('connection from', self.client_address)
-
-            data = self.connection.recv(HelloMessage.size())
-            HelloMessage.deserialize(data)
-
-            self.connection.sendall(
-                ConnectionMessage(self.udp_port).serialize())
-
-            data = self.connection.recv(InfoFileMessage.size())
-            info_file_message = InfoFileMessage.deserialize(data)
-
-            print(info_file_message.file_name)
-            print(info_file_message.file_size)
-
-            # TODO: alocate structures for the sliding window
-
-            self.connection.sendall(OkMessage.serialize())
-
-            self.connection.sendall(FimMessage.serialize())
-
-            # full_message = ""
-            # while True:
-            #     data = self.connection.recv(16)
-
-            #     if not data:
-            #         print('no more data from', self.client_address)
-            #         break
-
-            #     message = data.decode()
-            #     full_message += message
-
-            #     if '\n' in message:
-            #         break
-
-            # print('received "%s"' % full_message)
-
-            # self.connection.sendall((str(self.udp_port) + '\n').encode())
-
-        finally:
-            self.connection.close()
+OUTPUT_DIR = 'output'
 
 
 class ClientThread(threading.Thread):
@@ -102,9 +20,33 @@ class ClientThread(threading.Thread):
         self.daemon = True
 
     def run(self):
-        ClientControlThread(
-            self.connection, self.client_address, self.udp_port).start()
-        ClientDataThread(self.family, self.udp_port).start()
+        udp_sock = socket.socket(self.family, socket.SOCK_DGRAM)
+        udp_sock.bind(('localhost', self.udp_port))
+        try:
+            print('connection from', self.client_address)
+
+            data = self.connection.recv(HelloMessage.size())
+            HelloMessage.deserialize(data)
+
+            self.connection.sendall(
+                ConnectionMessage(self.udp_port).serialize())
+
+            data = self.connection.recv(InfoFileMessage.size())
+            info_file_message = InfoFileMessage.deserialize(data)
+
+            self.connection.sendall(OkMessage.serialize())
+
+            data = udp_sock.recv(info_file_message.file_size)
+            file_content = data.decode()
+
+            f = open(OUTPUT_DIR + '/' + info_file_message.file_name, "w")
+            f.write(file_content)
+            f.close()
+
+            self.connection.sendall(FimMessage.serialize())
+        finally:
+            self.connection.close()
+            udp_sock.close()
 
 
 class ServerThread(threading.Thread):

@@ -25,6 +25,12 @@ def main():
         print("invalid file name")
         return
 
+    f = open(file_name, "r")
+    file_content = f.read()
+    f.close()
+
+    file_size = os.path.getsize(file_name)
+
     family = None
     if ':' in server_address:
         family = socket.AF_INET6
@@ -34,56 +40,29 @@ def main():
 
     sock.connect((server_address, server_port))
 
-    # f = open(file_name, "r")
-    # content = f.readline() + '\n'
-    # f.close()
-
-    # udp_port = 0
+    udp_sock = None
     try:
         sock.sendall(HelloMessage.serialize())
 
         data = sock.recv(ConnectionMessage.size())
         connection_message = ConnectionMessage.deserialize(data)
-        print("connection_message", connection_message.udp_port)
+        udp_port = connection_message.udp_port
 
-        file_size = os.path.getsize(file_name)
         sock.sendall(InfoFileMessage(file_name, file_size).serialize())
 
         data = sock.recv(OkMessage.size())
         OkMessage.deserialize(data)
 
+        udp_sock = socket.socket(family, socket.SOCK_DGRAM)
+        udp_sock.sendto(file_content.encode(), (server_address, udp_port))
+
         data = sock.recv(FimMessage.size())
         FimMessage.deserialize(data)
-
-        # sock.sendall(content.encode())
-
-        # full_message = ""
-        # while True:
-        #     data = sock.recv(16)
-
-        #     if not data:
-        #         print('no more data from server')
-        #         break
-
-        #     message = data.decode()
-        #     full_message += message
-
-        #     if '\n' in message:
-        #         break
-
-        # print('received "%s"' % full_message)
-
-        # udp_port = int(full_message[0:-1])
     finally:
-        print('closing socket')
+        print('closing sockets')
         sock.close()
-
-    # sock = socket.socket(family, socket.SOCK_DGRAM)
-    # try:
-    #     sock.sendto(content.encode(), (server_address, udp_port))
-    # finally:
-    #     print('closing socket udp')
-    #     sock.close()
+        if udp_sock:
+            udp_sock.close()
 
 
 if __name__ == "__main__":
