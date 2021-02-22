@@ -156,3 +156,21 @@ class OkMessage:
     @staticmethod
     def serialize():
         return MessageTypeHelper.serialize(OkMessage.MESSAGE_TYPE)
+
+
+class FimMessage:
+    MESSAGE_TYPE = 4
+
+    @staticmethod
+    def deserialize(data):
+        message_type = MessageTypeHelper.deserialize(data)
+        if message_type != FimMessage.MESSAGE_TYPE:
+            raise Exception("Wrong type for FIM message")
+
+    @staticmethod
+    def size():
+        return MessageTypeHelper.SIZE
+
+    @staticmethod
+    def serialize():
+        return MessageTypeHelper.serialize(FimMessage.MESSAGE_TYPE)

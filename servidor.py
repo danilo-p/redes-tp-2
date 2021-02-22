@@ -4,7 +4,7 @@ import socket
 import sys
 import threading
 import time
-from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage
+from messages import HelloMessage, ConnectionMessage, InfoFileMessage, OkMessage, FimMessage
 
 
 class ClientDataThread(threading.Thread):
@@ -66,6 +66,8 @@ class ClientControlThread(threading.Thread):
             # TODO: alocate structures for the sliding window
 
             self.connection.sendall(OkMessage.serialize())
+
+            self.connection.sendall(FimMessage.serialize())
 
             # full_message = ""
             # while True:
