@@ -5,11 +5,11 @@ import sys
 import re
 import os
 import threading
+import time
 from messages import HelloMessage, ConnectionMessage, InfoFileMessage, \
     OkMessage, FimMessage, FileMessage, AckMessage
 
 CHUNK_SIZE_BYTES = 1000
-TCP_SOCKET_TIMEOUT = 5
 SLIDING_WINDOW_SIZE = 10
 
 
@@ -26,13 +26,14 @@ class ChunkSenderThread(threading.Thread):
         self.daemon = True
 
     def run(self):
-        while self.sliding_window.any_remaining_chunk():
+        while self.sliding_window.any_remaining_ack():
             try:
                 next_n_seq = self.sliding_window.next_chunk_n_seq()
                 if next_n_seq == -1:
                     continue
 
-                print(f'sending chunk {next_n_seq}')
+                print(
+                    f'sending chunk {next_n_seq} of {self.sliding_window.size}')
 
                 next_chunk_index = next_n_seq * CHUNK_SIZE_BYTES
                 chunk_end = min(next_chunk_index +
@@ -56,21 +57,39 @@ class AckReceiverThread(threading.Thread):
         self.sock = sock
         self.sliding_window = sliding_window
         self.daemon = True
+        self.est_rtt = 1
+        self.alpha = 1 / 8
+
+    def update_est_rtt(self, sample_rtt):
+        self.est_rtt = (1 - self.alpha) * self.est_rtt + \
+            self.alpha * sample_rtt
 
     def run(self):
         while self.sliding_window.any_remaining_ack():
             try:
+                print(
+                    f'waiting ack for chunk {self.sliding_window.last_ack_recvd + 1} - current estimated rtt: {"{:.2f}".format(self.est_rtt)}s')
+                self.sock.settimeout(2 * self.est_rtt)
+                start = time.time()
                 data = self.sock.recv(AckMessage.size())
                 ack_message = AckMessage.deserialize(data)
+                end = time.time()
 
                 if ack_message.n_seq == self.sliding_window.last_ack_recvd + 1:
-                    print(f'chunk acknowledged {ack_message.n_seq}')
+                    self.update_est_rtt(end - start)
+                    print(f'chunk {ack_message.n_seq} acknowledged')
                     self.sliding_window.increment_last_ack_recvd()
                     continue
 
-                print(f'discarding ack {ack_message.n_seq}')
+                print(f'discarding {ack_message.n_seq} ack')
                 self.sliding_window.reset_last_chunk_sent()
+            except socket.timeout:
+                self.sliding_window.reset_last_chunk_sent()
+                self.update_est_rtt(2 * self.est_rtt)
+                print("timeout error when receiving ack")
+                pass
             except Exception as e:
+                self.sliding_window.reset_last_chunk_sent()
                 print("unknown error when receiving ack")
                 print(e)
                 pass
@@ -103,29 +122,17 @@ class SlidingWindow:
         self.last_chunk_sent_lock.acquire()
         self.last_ack_recvd_lock.acquire()
         try:
-            if self.last_chunk_sent != -1:
-                self.last_chunk_sent = self.last_ack_recvd + 1
+            self.last_chunk_sent = self.last_ack_recvd
         finally:
             self.last_ack_recvd_lock.release()
             self.last_chunk_sent_lock.release()
-
-    def any_remaining_chunk(self):
-        self.last_chunk_sent_lock.acquire()
-        result = False
-        try:
-            result = self.last_chunk_sent < self.size
-        finally:
-            self.last_chunk_sent_lock.release()
-        return result
 
     def next_chunk_n_seq(self):
         self.last_chunk_sent_lock.acquire()
         self.last_ack_recvd_lock.acquire()
         result = -1
         try:
-            if self.last_chunk_sent == -1 \
-                or (self.last_chunk_sent < self.size
-                    and self.last_chunk_sent - self.last_ack_recvd < SLIDING_WINDOW_SIZE):
+            if self.last_chunk_sent < self.size and self.last_chunk_sent - self.last_ack_recvd < SLIDING_WINDOW_SIZE:
                 result = self.last_chunk_sent + 1
         finally:
             self.last_ack_recvd_lock.release()
@@ -174,8 +181,6 @@ def main():
     sock = socket.socket(family, socket.SOCK_STREAM)
 
     sock.connect((server_address, server_port))
-
-    sock.settimeout(TCP_SOCKET_TIMEOUT)
 
     udp_sock = None
     try:
