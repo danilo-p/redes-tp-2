@@ -86,7 +86,8 @@ class ServerThread(threading.Thread):
         sock.bind(('localhost', self.port))
         sock.listen(1)
         while True:
-            print('waiting for a connection')
+            print(
+                f'ipv{6 if self.family == socket.AF_INET6 else 4} waiting for a connection')
             connection, client_address = sock.accept()
             ClientThread(self.family, connection, client_address,
                          self.port + self.counter.increment()).start()
